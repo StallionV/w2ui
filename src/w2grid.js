@@ -7,6 +7,9 @@
 *
 * == NICE TO HAVE ==
 *	- frozen columns
+*	- add colspans
+*	- get rid of this.buffered
+*	- allow this.total to be unknown (-1)
 *	- column autosize based on largest content
 *	- save grid state into localStorage and restore
 *	- easy bubbles in the grid
@@ -15,11 +18,8 @@
 *	- hidden searches could not be clearned by the user
 *	- problem with .set() and arrays, array get extended too, but should be replaced
 *	- move events into prototype
-*	- add colspans
 *	- add grid.focus()
 *	- add showExtra, KickIn Infinite scroll when so many records
-*	- get rid of this.buffered
-*	- allow this.total to be unknown (-1)
 *	- after edit stay on the same record option
 *
 * == 1.4 changes
@@ -48,6 +48,7 @@
 *	- col.resizable = true by default
 *	- new: prepareData();
 *	- context menu similar to sidebar's
+*	- find will return array or recids not objects
 *
 ************************************************************************/
 
@@ -311,7 +312,7 @@
 					if (hasDots && String(o).indexOf('.') != -1) val = this.parseField(this.records[i], o);
 					if (obj[o] != val) match = false;
 				}
-				if (match && returnIndex !== true) recs.push(this.records[i]);
+				if (match && returnIndex !== true) recs.push(this.records[i].recid);
 				if (match && returnIndex === true) recs.push(i);
 			}
 			return recs;
@@ -1303,7 +1304,7 @@
 			if (this.searches.length == 0) return;
 			var obj = this;
 			// show search
-			$('#tb_'+ this.name +'_toolbar_item_search-advanced').w2overlay(
+			$('#tb_'+ this.name +'_toolbar_item_w2ui-search-advanced').w2overlay(
 				this.getSearchesHTML(),	{
 					name	: 'searches-'+ this.name,
 					left	: -10,
@@ -1322,7 +1323,7 @@
 		searchClose: function () {
 			if (!this.box) return;
 			if (this.searches.length == 0) return;
-			if (this.toolbar) this.toolbar.uncheck('search-advanced')
+			if (this.toolbar) this.toolbar.uncheck('w2ui-search-advanced')
 			// hide search
 			if ($('#w2ui-overlay-searches-'+ this.name +' .w2ui-grid-searches').length > 0) {
 				$().w2overlay('', { name: 'searches-'+ this.name });
@@ -1943,7 +1944,7 @@
 			};
 			while (true) {
 				new_val = eventData.value_new;
-				if (old_val != new_val && !(typeof old_val == 'undefined' && new_val == '')) {
+				if (( typeof old_val == 'undefined' || old_val === null ? '' : String(old_val)) !== String(new_val)) {
 					// change event
 					eventData = this.trigger($.extend(eventData, { type: 'change', phase: 'before' }));
 					if (eventData.isCancelled !== true) {
@@ -2138,7 +2139,8 @@
 			var eventData = this.trigger({ phase: 'before', type: 'columnClick', target: this.name, field: field, originalEvent: event });
 			if (eventData.isCancelled === true) return;
 			// default behaviour
-			this.sort(field, null, (event && (event.ctrlKey || event.metaKey) ? true : false) );
+			var column = this.getColumn(field);
+			if (column.sortable) this.sort(field, null, (event && (event.ctrlKey || event.metaKey) ? true : false) );
 			// event after
 			this.trigger($.extend(eventData, { phase: 'after' }));
 		},
@@ -2911,7 +2913,7 @@
 			// -- toolbar
 			if (this.show.toolbar) {
 				// if select-collumn is checked - no toolbar refresh
-				if (this.toolbar && this.toolbar.get('column-on-off') && this.toolbar.get('column-on-off').checked) {
+				if (this.toolbar && this.toolbar.get('w2ui-column-on-off') && this.toolbar.get('w2ui-column-on-off').checked) {
 					// no action
 				} else {
 					$('#grid_'+ this.name +'_toolbar').show();
@@ -2919,7 +2921,7 @@
 					if (typeof this.toolbar == 'object') {
 						var tmp = this.toolbar.items;
 						for (var t in tmp) {
-							if (tmp[t].id == 'search' || tmp[t].type == 'break') continue;
+							if (tmp[t].id == 'w2ui-search' || tmp[t].type == 'break') continue;
 							this.toolbar.refresh(tmp[t].id);
 						}
 					}
@@ -3273,7 +3275,7 @@
 						'	<div style="cursor: pointer; padding: 4px 8px; cursor: default">'+ w2utils.lang('Reset Column Size') + '</div>'+
 						'</td></tr>';
 			col_html += "</table></div>";
-			this.toolbar.get('column-on-off').html = col_html;
+			this.toolbar.get('w2ui-column-on-off').html = col_html;
 		},
 
 		/**
@@ -3595,7 +3597,7 @@
 					this.initColumnOnOff();
 				}
 				if (this.show.toolbarReload || this.show.toolbarColumn) {
-					this.toolbar.items.push({ type: 'break', id: 'break0' });
+					this.toolbar.items.push({ type: 'break', id: 'w2ui-break0' });
 				}
 				if (this.show.toolbarSearch) {
 					var html =
@@ -3619,13 +3621,13 @@
 						'	</td>'+
 						'</tr></table>'+
 						'</div>';
-					this.toolbar.items.push({ type: 'html', id: 'search', html: html });
+					this.toolbar.items.push({ type: 'html', id: 'w2ui-search', html: html });
 					if (this.multiSearch && this.searches.length > 0) {
 						this.toolbar.items.push($.extend(true, {}, this.buttons['search-go']));
 					}
 				}
 				if (this.show.toolbarSearch && (this.show.toolbarAdd || this.show.toolbarEdit || this.show.toolbarDelete || this.show.toolbarSave)) {
-					this.toolbar.items.push({ type: 'break', id: 'break1' });
+					this.toolbar.items.push({ type: 'break', id: 'w2ui-break1' });
 				}
 				if (this.show.toolbarAdd) {
 					this.toolbar.items.push($.extend(true, {}, this.buttons['add']));
@@ -3638,7 +3640,7 @@
 				}
 				if (this.show.toolbarSave) {
 					if (this.show.toolbarAdd || this.show.toolbarDelete || this.show.toolbarEdit) {
-						this.toolbar.items.push({ type: 'break', id: 'break2' });
+						this.toolbar.items.push({ type: 'break', id: 'w2ui-break2' });
 					}
 					this.toolbar.items.push($.extend(true, {}, this.buttons['save']));
 				}
@@ -3654,13 +3656,13 @@
 					if (eventData.isCancelled === true) return;
 					var id = event.target;
 					switch (id) {
-						case 'reload':
+						case 'w2ui-reload':
 							var eventData2 = obj.trigger({ phase: 'before', type: 'reload', target: obj.name });
 							if (eventData2.isCancelled === true) return false;
 							obj.reload();
 							obj.trigger($.extend(eventData2, { phase: 'after' }));
 							break;
-						case 'column-on-off':
+						case 'w2ui-column-on-off':
 							for (var c in obj.columns) {
 								if (obj.columns[c].hidden) {
 									$("#grid_"+ obj.name +"_column_"+ c + "_check").prop("checked", false);
@@ -3671,7 +3673,7 @@
 							obj.initResize();
 							obj.resize();
 							break;
-						case 'search-advanced':
+						case 'w2ui-search-advanced':
 							var tb = this;
 							var it = this.get(id);
 							if (it.checked) {
@@ -3688,12 +3690,12 @@
 								$(document).on('click', 'body', tmp_close);
 							}
 							break;
-						case 'add':
+						case 'w2ui-add':
 							// events
 							var eventData = obj.trigger({ phase: 'before', target: obj.name, type: 'add', recid: null });
 							obj.trigger($.extend(eventData, { phase: 'after' }));
 							break;
-						case 'edit':
+						case 'w2ui-edit':
 							var sel 	= obj.getSelection();
 							var recid 	= null;
 							if (sel.length == 1) recid = sel[0];
@@ -3701,10 +3703,10 @@
 							var eventData = obj.trigger({ phase: 'before', target: obj.name, type: 'edit', recid: recid });
 							obj.trigger($.extend(eventData, { phase: 'after' }));
 							break;
-						case 'delete':
+						case 'w2ui-delete':
 							obj.delete();
 							break;
-						case 'save':
+						case 'w2ui-save':
 							obj.save();
 							break;
 					}
@@ -4297,18 +4299,18 @@
 							resizer = '<div class="w2ui-resizer" name="'+ ii +'"></div>';
 						}
 						html += '<td class="w2ui-head '+ sortStyle +'" col="'+ ii + '" rowspan="2" colspan="'+ (colg.span + (i == obj.columnGroups.length-1 ? 1 : 0) ) +'" '+
-										(col.sortable ? 'onclick="w2ui[\''+ obj.name +'\'].columnClick(\''+ col.field +'\', event);"' : '') +'>'+
+								'	onclick="w2ui[\''+ obj.name +'\'].columnClick(\''+ col.field +'\', event);">'+
 									resizer +
 								'	<div class="w2ui-col-group w2ui-col-header '+ (sortStyle ? 'w2ui-col-sorted' : '') +'">'+
 								'		<div class="'+ sortStyle +'"></div>'+
-										(col.caption == '' ? '&nbsp;' : col.caption) +
+										(!col.caption ? '&nbsp;' : col.caption) +
 								'	</div>'+
 								'</td>';
 					} else {
 						html += '<td class="w2ui-head" col="'+ ii + '" '+
 								'		colspan="'+ (colg.span + (i == obj.columnGroups.length-1 ? 1 : 0) ) +'">'+
 								'	<div class="w2ui-col-group">'+
-									(colg.caption == '' ? '&nbsp;' : colg.caption) +
+									(!colg.caption ? '&nbsp;' : colg.caption) +
 								'	</div>'+
 								'</td>';
 					}
@@ -4367,11 +4369,11 @@
 							resizer = '<div class="w2ui-resizer" name="'+ i +'"></div>';
 						}
 						html += '<td col="'+ i +'" class="w2ui-head '+ sortStyle + reorderCols + '" ' +
-										(col.sortable ? 'onclick="w2ui[\''+ obj.name +'\'].columnClick(\''+ col.field +'\', event);"' : '') + '>'+
+								'	onclick="w2ui[\''+ obj.name +'\'].columnClick(\''+ col.field +'\', event);">'+
 									resizer +
 								'	<div class="w2ui-col-header '+ (sortStyle ? 'w2ui-col-sorted' : '') +'">'+
 								'		<div class="'+ sortStyle +'"></div>'+
-										(col.caption == '' ? '&nbsp;' : col.caption) +
+										(!col.caption ? '&nbsp;' : col.caption) +
 								'	</div>'+
 								'</td>';
 					}
@@ -4689,7 +4691,7 @@
 						if (typeof tmp[1] == 'undefined' || !w2utils.isInt(tmp[1])) tmp[1] = 0;
 						if (tmp[1] > 20) tmp[1] = 20;
 						if (tmp[1] < 0)  tmp[1] = 0;
-						if (['money', 'currency'].indexOf(tmp[0]) != -1) { tmp[1] = 2; prefix = w2utils.settings.currencyPrefix; suffix = w2utils.settings.currencySuffix }
+						if (['money', 'currency'].indexOf(tmp[0]) != -1) { tmp[1] = w2utils.settings.currencyPrecision; prefix = w2utils.settings.currencyPrefix; suffix = w2utils.settings.currencySuffix }
 						if (tmp[0] == 'percent') { suffix = '%'; if (tmp[1] !== '0') tmp[1] = 1; }
 						if (tmp[0] == 'int')	 { tmp[1] = 0; }
 						// format

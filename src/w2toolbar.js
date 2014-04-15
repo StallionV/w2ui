@@ -114,7 +114,7 @@
 			}
 		},
 
-		remove: function (id) {
+		remove: function () {
 			var removed = 0;
 			for (var a = 0; a < arguments.length; a++) {
 				var it = this.get(arguments[a]);
@@ -151,75 +151,93 @@
 			return null;
 		},
 
-		show: function (id) {
+		show: function () {
+			var obj   = this;
 			var items = 0;
+			var tmp   = [];
 			for (var a = 0; a < arguments.length; a++) {
 				var it = this.get(arguments[a]);
 				if (!it) continue;
 				items++;
 				it.hidden = false;
-				this.refresh(it.id);
+				tmp.push(it.id);
 			}
+			setTimeout(function () { for (var t in tmp) obj.refresh(tmp[t]); }, 15); // needs timeout 
 			return items;
 		},
 
-		hide: function (id) {
+		hide: function () {
+			var obj   = this;
 			var items = 0;
+			var tmp   = [];
 			for (var a = 0; a < arguments.length; a++) {
 				var it = this.get(arguments[a]);
 				if (!it) continue;
 				items++;
 				it.hidden = true;
-				this.refresh(it.id);
+				tmp.push(it.id);
 			}
+			setTimeout(function () { for (var t in tmp) obj.refresh(tmp[t]); }, 15); // needs timeout 
 			return items;
 		},
 
-		enable: function (id) {
+		enable: function () {
+			var obj   = this;
 			var items = 0;
+			var tmp   = [];
 			for (var a = 0; a < arguments.length; a++) {
 				var it = this.get(arguments[a]);
 				if (!it) continue;
 				items++;
 				it.disabled = false;
-				this.refresh(it.id);
+				tmp.push(it.id);
 			}
+			setTimeout(function () { for (var t in tmp) obj.refresh(tmp[t]); }, 15); // needs timeout 
 			return items;
 		},
 
-		disable: function (id) {
+		disable: function () {
+			var obj   = this;
 			var items = 0;
+			var tmp   = [];
 			for (var a = 0; a < arguments.length; a++) {
 				var it = this.get(arguments[a]);
 				if (!it) continue;
 				items++;
 				it.disabled = true;
-				this.refresh(it.id);
+				tmp.push(it.id);
 			}
+			setTimeout(function () { for (var t in tmp) obj.refresh(tmp[t]); }, 15); // needs timeout 
 			return items;
 		},
 
-		check: function (id) {
+		check: function () {
+			var obj   = this;
 			var items = 0;
+			var tmp   = [];
 			for (var a = 0; a < arguments.length; a++) {
 				var it = this.get(arguments[a]);
 				if (!it) continue;
 				items++;
 				it.checked = true;
-				this.refresh(it.id);
+				tmp.push(it.id);
 			}
+			setTimeout(function () { for (var t in tmp) obj.refresh(tmp[t]); }, 15); // needs timeout 
 			return items;
 		},
 
-		uncheck: function (id) {
+		uncheck: function () {
+			var obj   = this;
 			var items = 0;
+			var tmp   = [];
 			for (var a = 0; a < arguments.length; a++) {
 				var it = this.get(arguments[a]);
 				if (!it) continue;
 				items++;
 				it.checked = false;
-				this.refresh(it.id);
+				tmp.push(it.id);
 			}
+			setTimeout(function () { for (var t in tmp) obj.refresh(tmp[t]); }, 15); // needs timeout 
 			return items;
 		},
 
@@ -420,7 +438,7 @@
 			if (it && !it.disabled) {
 				// event before
 				var eventData = this.trigger({ phase: 'before', type: 'click', target: (typeof id !== 'undefined' ? id : this.name),
-					item: this.get(id), originalEvent: event });
+					item: it, object: it, originalEvent: event });
 				if (eventData.isCancelled === true) return;
 
 				var btn = $('#tb_'+ this.name +'_item_'+ w2utils.escapeId(it.id) +' table.w2ui-button');

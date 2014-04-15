@@ -40,6 +40,7 @@ var w2obj = w2obj || {}; // expose object to be able to overwrite default functi
 *	- multiple overlay at the same time (if it has name)
 *	- overlay options.css removed, I have added options.style
 *	- ability to open searchable w2menu
+* 	- w2confirm({})
 *
 ************************************************/
 
@@ -53,6 +54,7 @@ var w2utils = (function () {
 			"time_format"	: "h12",
 			"currencyPrefix": "$",
 			"currencySuffix": "",
+			"currencyPrecision": 2,
 			"groupSymbol"	: ",",
 			"shortmonths"	: ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"],
 			"fullmonths"	: ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"],
@@ -732,7 +734,7 @@ var w2utils = (function () {
 		}
 		if (!options.msg && options.msg !== 0) options.msg = '';
 		w2utils.unlock(box);
-		$(box).find('>:first-child').before(
+		$(box).prepend(
 			'<div class="w2ui-lock"></div>'+
 			'<div class="w2ui-lock-msg"></div>'
 		);
@@ -741,8 +743,13 @@ var w2utils = (function () {
 		if (!options.msg) mess.css({ 'background-color': 'transparent', 'border': '0px' });
 		if (options.spinner === true) options.msg = '<div class="w2ui-spinner" '+ (!options.msg ? 'style="width: 35px; height: 35px"' : '') +'></div>' + options.msg;
 		if (options.opacity != null) $lock.css('opacity', options.opacity);
-		$lock.fadeIn(200);
-		mess.html(options.msg).fadeIn(200);
+		if (typeof $lock.fadeIn == 'function') {
+			$lock.fadeIn(200);
+			mess.html(options.msg).fadeIn(200);
+		} else {
+			$lock.show();
+			mess.html(options.msg).show(0);			
+		}
 		// hide all tags (do not hide overlays as the form can be in overlay)
 		$().w2tag();
 	}
@@ -1386,6 +1393,7 @@ w2utils.keyboard = (function (obj) {
 			index		: null,		// current selected
 			items		: [],
 			render		: null,
+			msgNoItems 	: 'No items',
 			onSelect	: null,
 			tmp			: {}
 		};
@@ -1536,9 +1544,9 @@ w2utils.keyboard = (function (obj) {
 
 		function getMenuHTML () {
 			if (options.spinner) {
-				return  '<table class="w2ui-drop-menu"><tr><td style="padding: 10px; text-align: center;">'+
-						'	<div class="w2ui-spinner" style="width: 18px; height: 18px; position: relative; top: 5px; left: 2px;"></div> '+
-						'	<div style="display: inline-block; padding: 5px;"> Loading...</div>'+
+				return  '<table class="w2ui-drop-menu"><tr><td style="padding: 5px 0px 10px 0px; text-align: center">'+
+						'	<div class="w2ui-spinner" style="width: 18px; height: 18px; position: relative; top: 5px;"></div> '+
+						'	<div style="display: inline-block; padding: 3px; color: #999;"> Loading...</div>'+
 						'</td></tr></table>';
 			}
 			var count		= 0;
@@ -1586,7 +1594,7 @@ w2utils.keyboard = (function (obj) {
 				options.items[f] = mitem;
 			}
 			if (count === 0) {
-				menu_html += '<tr><td style="text-align: center; color: #999">No items</td></tr>';
+				menu_html += '<tr><td style="padding: 13px; color: #999; text-align: center">'+ options.msgNoItems +'</div></td></tr>';
 			}
 			menu_html += "</table>";
 			return menu_html;
@@ -1632,6 +1640,8 @@ w2utils.keyboard = (function (obj) {
 *	- easy way to add icons
 *	- easy way to navigate month/year in dates
 *	- added step for numeric inputs
+*	- changed prepopulate -> minLength
+*	- added options.postData
 *
 ************************************************************************/
 
@@ -1796,8 +1806,9 @@ w2utils.keyboard = (function (obj) {
 						autoFormat	 	: true,
 						currencyPrefix	: w2utils.settings.currencyPrefix,
 						currencySuffix	: w2utils.settings.currencySuffix,
+						currencyPrecision: w2utils.settings.currencyPrecision,
 						groupSymbol		: w2utils.settings.groupSymbol,
-						arrows			: true,
+						arrows			: false,
 						keyboard		: true,
 						precision		: null,
 						silent			: true,
@@ -1876,10 +1887,11 @@ w2utils.keyboard = (function (obj) {
 						selected		: {},
 						placeholder		: '',
 						url 			: null, 		// url to pull data from
-						prepopulate		: true,
+						postData		: {},
+						minLength		: 1,
 						cacheMax		: 250,
 						maxDropHeight 	: 350,			// max height for drop down menu
-						match			: 'begins with',// ['contains', 'is', 'begins with', 'ends with']
+						match			: 'begins',		// ['contains', 'is', 'begins', 'ends']
 						silent			: true,
 						icon			: null,
 						iconStyle		: '',
@@ -1930,12 +1942,13 @@ w2utils.keyboard = (function (obj) {
 						placeholder		: '',
 						max 			: 0,			// max number of selected items, 0 - unlim
 						url 			: null, 		// not implemented
-						prepopulate		: true,			// if true pull records from url during init
+						postData		: {},
+						minLength		: 1, 
 						cacheMax		: 250,
 						maxWidth		: 250,			// max width for a single item
 						maxHeight		: 350,			// max height for input control to grow
 						maxDropHeight 	: 350,			// max height for drop down menu
-						match			: 'contains',	// ['contains', 'is', 'begins with', 'ends with']
+						match			: 'contains',	// ['contains', 'is', 'begins', 'ends']
 						silent			: true,
 						openOnFocus 	: false,		// if to show overlay onclick or when typing
 						markSearch 		: true,
@@ -2268,7 +2281,7 @@ w2utils.keyboard = (function (obj) {
 				switch (this.type) {
 					case 'money':
 					case 'currency':
-						val = w2utils.formatNumber(Number(val).toFixed(2), options.groupSymbol);
+						val = w2utils.formatNumber(Number(val).toFixed(options.currencyPrecision), options.groupSymbol);
 						if (val != '') val = options.currencyPrefix + val + options.currencySuffix;
 						break;
 					case 'percent':
@@ -2602,7 +2615,7 @@ w2utils.keyboard = (function (obj) {
 						var item  = options.items[options.index];
 						var multi = $(obj.helpers.multi).find('input');
 						if (obj.type == 'enum') {
-							if (item) {
+							if (item != null) {
 								// trigger event
 								var eventData = obj.trigger({ phase: 'before', type: 'add', target: obj.el, originalEvent: event.originalEvent, item: item });
 								if (eventData.isCancelled === true) return;
@@ -2717,7 +2730,7 @@ w2utils.keyboard = (function (obj) {
 				// run search
 				if ([16, 17, 18, 20, 37, 39, 91].indexOf(key) == -1) { // no refreah on crtl, shift, left/right arrows, etc
 					setTimeout(function () {
-						obj.request();
+						if (!obj.tmp.force_hide) obj.request();
 						obj.search();
 					}, 1);
 				}
@@ -2743,6 +2756,9 @@ w2utils.keyboard = (function (obj) {
 			var obj 	 = this;
 			var options  = this.options;
 			var search 	 = $(obj.el).val() || '';
+			// if no url - do nothing
+			if (!options.url) return;
+			// --
 			if (obj.type == 'enum') {
 				var tmp = $(obj.helpers.multi).find('input');
 				if (tmp.length == 0) search = ''; else search = tmp.val();
@@ -2751,7 +2767,11 @@ w2utils.keyboard = (function (obj) {
 				var tmp = $(obj.helpers.focus).find('input');
 				if (tmp.length == 0) search = ''; else search = tmp.val();
 			}
-			if (search == '' && !options.prepopulate) return;
+			if (options.minLength != 0 && search.length < options.minLength) {
+				options.items = []; // need to empty the list
+				this.updateOverlay();
+				return;
+			}
 			if (typeof interval == 'undefined') interval = 350;
 			if (typeof obj.tmp.xhr_search == 'undefined') obj.tmp.xhr_search = '';
 			if (typeof obj.tmp.xhr_total == 'undefined') obj.tmp.xhr_total = -1;
@@ -2774,6 +2794,7 @@ w2utils.keyboard = (function (obj) {
 						search	: search,
 						max 	: options.cacheMax
 					};
+					$.extend(postData, options.postData);
 					var eventData = obj.trigger({ phase: 'before', type: 'request', target: obj.el, url: url, postData: postData });
 					if (eventData.isCancelled === true) return;
 					url		 = eventData.url;
@@ -2803,6 +2824,7 @@ w2utils.keyboard = (function (obj) {
 							obj.tmp.xhr_search 	= search;
 							obj.tmp.xhr_total 	= data.items.length;
 							options.items 		= data.items;
+							if (search == '' && data.items.length == 0) obj.tmp.emptySet = true; else obj.tmp.emptySet = false;
 							obj.search();
 							// console.log('-->', 'retrieved:', obj.tmp.xhr_total);
 							// event after
@@ -2831,16 +2853,17 @@ w2utils.keyboard = (function (obj) {
 			var options = this.options;
 			var search 	= $(obj.el).val();
 			var target	= obj.el;
-			var ids = [];
+			var ids 	= [];
+			var selected= $(obj.el).data('selected');
 			if (obj.type == 'enum') {
 				target = $(obj.helpers.multi).find('input');
 				search = target.val();
-				for (var s in options.selected) { ids.push(options.selected[s].id); }
+				for (var s in selected) { if (selected[s]) ids.push(selected[s].id); }
 			}
 			if (obj.type == 'list') {
 				target = $(obj.helpers.focus).find('input');
 				search = target.val();
-				for (var s in options.selected) { ids.push(options.selected[s].id); }
+				for (var s in selected) { if (selected[s]) ids.push(selected[s].id); }
 			}
 			// trigger event
 			var eventData = obj.trigger({ phase: 'before', type: 'search', target: target, search: search });
@@ -2851,8 +2874,8 @@ w2utils.keyboard = (function (obj) {
 					var item = options.items[i];
 					var prefix = '';
 					var suffix = '';
-					if (['is', 'begins with'].indexOf(options.match) != -1) prefix = '^';
-					if (['is', 'ends with'].indexOf(options.match) != -1) suffix = '$';
+					if (['is', 'begins'].indexOf(options.match) != -1) prefix = '^';
+					if (['is', 'ends'].indexOf(options.match) != -1) suffix = '$';
 					try {
 						var re = new RegExp(prefix + search + suffix, 'i');
 						if (re.test(item.text) || item.text == '...') item.hidden = false; else item.hidden = true;
@@ -2870,7 +2893,12 @@ w2utils.keyboard = (function (obj) {
 				if (shown <= 0) options.index = -1;
 				options.spinner = false;
 				obj.updateOverlay();
-				setTimeout(function () { if (options.markSearch) $('#w2ui-overlay').w2marker(search); }, 1);
+				setTimeout(function () { 
+					var html = $('#w2ui-overlay').html() || '';
+					if (options.markSearch && html.indexOf('$.fn.w2menuHandler') != -1) { // do not highlight when no items
+						$('#w2ui-overlay').w2marker(search); 
+					}
+				}, 1);
 			} else {
 				options.items.splice(0, options.cacheMax);
 				options.spinner = true;
@@ -3024,15 +3052,21 @@ w2utils.keyboard = (function (obj) {
 					}
 					if (obj.tmp.force_hide) {
 						$().w2overlay();
-						delete obj.tmp.force_hide;
+						setTimeout(function () {
+							delete obj.tmp.force_hide;
+						}, 1);						
 						return;
 					}
 					if ($(input).val() != '') delete obj.tmp.force_open;
 					if ($('#w2ui-overlay').length == 0) options.index = 0;
+					var msgNoItems = w2utils.lang('No matches');
+					if (options.url != null && $(input).val().length < options.minLength && obj.tmp.emptySet !== true) msgNoItems = options.minLength + ' ' + w2utils.lang('letters or more...');
+					if (options.url != null && $(input).val() == '' && obj.tmp.emptySet !== true) msgNoItems = w2utils.lang('Type to search....');
 					$(el).w2menu('refresh', $.extend(true, {}, options, {
 						search		: false,
 						render		: options.renderDrop,
 						maxHeight	: options.maxDropHeight,
+						msgNoItems	: msgNoItems,
 						// selected with mouse
 						onSelect: function (event) {
 							if (obj.type == 'enum') {
@@ -3523,16 +3557,22 @@ w2utils.keyboard = (function (obj) {
 		},
 
 		normMenu: function (menu) {
-			for (var m = 0; m < menu.length; m++) {
-				if (typeof menu[m] == 'string') {
-					menu[m] = { id: menu[m], text: menu[m] };
-				} else {
-					if (typeof menu[m].text != 'undefined' && typeof menu[m].id == 'undefined') menu[m].id = menu[m].text;
-					if (typeof menu[m].text == 'undefined' && typeof menu[m].id != 'undefined') menu[m].text = menu[m].id;
-					if (typeof menu[m].caption != 'undefined') menu[m].text = menu[m].caption;
+			if ($.isArray(menu)) {
+				for (var m = 0; m < menu.length; m++) {
+					if (typeof menu[m] == 'string') {
+						menu[m] = { id: menu[m], text: menu[m] };
+					} else {
+						if (typeof menu[m].text != 'undefined' && typeof menu[m].id == 'undefined') menu[m].id = menu[m].text;
+						if (typeof menu[m].text == 'undefined' && typeof menu[m].id != 'undefined') menu[m].text = menu[m].id;
+						if (typeof menu[m].caption != 'undefined') menu[m].text = menu[m].caption;
+					}
 				}
+				return menu;
+			} else if (typeof menu == 'object') {
+				var tmp = []
+				for (var m in menu) tmp.push({ id: m, text: menu[m] });
+				return tmp;
 			}
-			return menu
 		},
 
 		getColorHTML: function () {

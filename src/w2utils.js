@@ -39,6 +39,7 @@ var w2obj = w2obj || {}; // expose object to be able to overwrite default functi
 *	- multiple overlay at the same time (if it has name)
 *	- overlay options.css removed, I have added options.style
 *	- ability to open searchable w2menu
+* 	- w2confirm({})
 *
 ************************************************/
 
@@ -52,6 +53,7 @@ var w2utils = (function () {
 			"time_format"	: "h12",
 			"currencyPrefix": "$",
 			"currencySuffix": "",
+			"currencyPrecision": 2,
 			"groupSymbol"	: ",",
 			"shortmonths"	: ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"],
 			"fullmonths"	: ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"],
@@ -731,7 +733,7 @@ var w2utils = (function () {
 		}
 		if (!options.msg && options.msg !== 0) options.msg = '';
 		w2utils.unlock(box);
-		$(box).find('>:first-child').before(
+		$(box).prepend(
 			'<div class="w2ui-lock"></div>'+
 			'<div class="w2ui-lock-msg"></div>'
 		);
@@ -740,8 +742,13 @@ var w2utils = (function () {
 		if (!options.msg) mess.css({ 'background-color': 'transparent', 'border': '0px' });
 		if (options.spinner === true) options.msg = '<div class="w2ui-spinner" '+ (!options.msg ? 'style="width: 35px; height: 35px"' : '') +'></div>' + options.msg;
 		if (options.opacity != null) $lock.css('opacity', options.opacity);
-		$lock.fadeIn(200);
-		mess.html(options.msg).fadeIn(200);
+		if (typeof $lock.fadeIn == 'function') {
+			$lock.fadeIn(200);
+			mess.html(options.msg).fadeIn(200);
+		} else {
+			$lock.show();
+			mess.html(options.msg).show(0);			
+		}
 		// hide all tags (do not hide overlays as the form can be in overlay)
 		$().w2tag();
 	}
@@ -1385,6 +1392,7 @@ w2utils.keyboard = (function (obj) {
 			index		: null,		// current selected
 			items		: [],
 			render		: null,
+			msgNoItems 	: 'No items',
 			onSelect	: null,
 			tmp			: {}
 		};
@@ -1535,9 +1543,9 @@ w2utils.keyboard = (function (obj) {
 
 		function getMenuHTML () {
 			if (options.spinner) {
-				return  '<table class="w2ui-drop-menu"><tr><td style="padding: 10px; text-align: center;">'+
-						'	<div class="w2ui-spinner" style="width: 18px; height: 18px; position: relative; top: 5px; left: 2px;"></div> '+
-						'	<div style="display: inline-block; padding: 5px;"> Loading...</div>'+
+				return  '<table class="w2ui-drop-menu"><tr><td style="padding: 5px 0px 10px 0px; text-align: center">'+
+						'	<div class="w2ui-spinner" style="width: 18px; height: 18px; position: relative; top: 5px;"></div> '+
+						'	<div style="display: inline-block; padding: 3px; color: #999;"> Loading...</div>'+
 						'</td></tr></table>';
 			}
 			var count		= 0;
@@ -1585,7 +1593,7 @@ w2utils.keyboard = (function (obj) {
 				options.items[f] = mitem;
 			}
 			if (count === 0) {
-				menu_html += '<tr><td style="text-align: center; color: #999">No items</td></tr>';
+				menu_html += '<tr><td style="padding: 13px; color: #999; text-align: center">'+ options.msgNoItems +'</div></td></tr>';
 			}
 			menu_html += "</table>";
 			return menu_html;

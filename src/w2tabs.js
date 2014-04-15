@@ -104,7 +104,7 @@
 			}
 		},
 
-		remove: function (id) {
+		remove: function () {
 			var removed = 0;
 			for (var a = 0; a < arguments.length; a++) {
 				var tab = this.get(arguments[a]);
@@ -154,50 +154,62 @@
 		},
 
 		show: function () {
+			var obj   = this;
 			var shown = 0;
+			var tmp   = [];
 			for (var a = 0; a < arguments.length; a++) {
 				var tab = this.get(arguments[a]);
 				if (!tab || tab.hidden === false) continue;
-				tab.hidden = false;
-				this.refresh(tab.id);
 				shown++;
+				tab.hidden = false;
+				tmp.push(tab.id);
 			}
+			setTimeout(function () { for (var t in tmp) obj.refresh(tmp[t]); }, 15); // needs timeout 
 			return shown;
 		},
 
 		hide: function () {
-			var hidden = 0;
+			var obj   = this;
+			var hidden= 0;
+			var tmp   = [];
 			for (var a = 0; a < arguments.length; a++) {
 				var tab = this.get(arguments[a]);
 				if (!tab || tab.hidden === true) continue;
-				tab.hidden = true;
-				this.refresh(tab.id);
 				hidden++;
+				tab.hidden = true;
+				tmp.push(tab.id);
 			}
+			setTimeout(function () { for (var t in tmp) obj.refresh(tmp[t]); }, 15); // needs timeout 
 			return hidden;
 		},
 
-		enable: function (id) {
+		enable: function () {
+			var obj   = this;
 			var enabled = 0;
+			var tmp   = [];
 			for (var a = 0; a < arguments.length; a++) {
 				var tab = this.get(arguments[a]);
 				if (!tab || tab.disabled === false) continue;
-				tab.disabled = false;
-				this.refresh(tab.id);
 				enabled++;
+				tab.disabled = false;
+				tmp.push(tab.id);
 			}
+			setTimeout(function () { for (var t in tmp) obj.refresh(tmp[t]); }, 15); // needs timeout 
 			return enabled;
 		},
 
-		disable: function (id) {
+		disable: function () {
+			var obj   = this;
 			var disabled = 0;
+			var tmp   = [];
 			for (var a = 0; a < arguments.length; a++) {
 				var tab = this.get(arguments[a]);
 				if (!tab || tab.disabled === true) continue;
-				tab.disabled = true;
-				this.refresh(tab.id);
 				disabled++;
+				tab.disabled = true;
+				tmp.push(tab.id);
 			}
+			setTimeout(function () { for (var t in tmp) obj.refresh(tmp[t]); }, 15); // needs timeout 
 			return disabled;
 		},
 
@@ -316,7 +328,7 @@
 			var tab = this.get(id);
 			if (tab === null || tab.disabled) return false;
 			// event before
-			var eventData = this.trigger({ phase: 'before', type: 'click', target: id, object: this.get(id), originalEvent: event });
+			var eventData = this.trigger({ phase: 'before', type: 'click', target: id, tab: tab, object: tab, originalEvent: event });
 			if (eventData.isCancelled === true) return;
 			// default action
 			$(this.box).find('#tabs_'+ this.name +'_tab_'+ w2utils.escapeId(this.active) +' .w2ui-tab').removeClass('active');
